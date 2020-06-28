@@ -39,5 +39,25 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    Mux16(a=instruction, b=aluOut, sel=instruction[15], out=insOut);
+    Not(in=instruction[15], out=aInsTrue);
+    Or(a=instruction[5], b=aInsTrue, out=aRegLoad);
+    ARegister(in=insOut, load=aRegLoad, out=aBus, out[0..14]=addressM);
+    Mux16(a=aBus, b=inM, sel=instruction[12], out=aMBus);
+    ALU(x=dBus, y=aMBus, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=aluOut, out=outM, zr=aluZro, ng=aluNeg);
+    And(a=instruction[15], b=instruction[3], out=writeM);
+    And(a=instruction[15], b=instruction[4], out=dLoad);
+    DRegister(in=aluOut, load=dLoad, out=dBus);
+    Not(in=aluNeg, out=notNeg);
+    Xor(a=notNeg, b=aluZro, out=aluPos);
+    And(a=instruction[1], b=instruction[0], out=j1j2);
+    And(a=instruction[2], b=j1j2, out=jmp);
+    And(a=aluNeg, b=instruction[2], out=jlt);
+    And(a=aluZro, b=instruction[1], out=jeq);
+    And(a=aluPos, b=instruction[0], out=jgt);
+    Or(a=jmp, b=jlt, out=jmpJlt);
+    Or(a=jgt, b=jeq, out=jgtJeq);
+    Or(a=jgtJeq, b=jmpJlt, out=aluStatLogic);
+    And(a=instruction[15], b=aluStatLogic, out=jmpLogic);
+    PC(in=aBus, load=jmpLogic, inc=true, reset=reset, out[0..14]=pc);
 }
